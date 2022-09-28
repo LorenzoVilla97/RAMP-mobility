@@ -302,7 +302,7 @@ def Time_correction(df, country, year, start_day):
     if country == 'UK':
         country = 'GB'
         
-    ind = df_c.index#.tz_localize(pytz.country_timezones[country][0], nonexistent = 'NaT', ambiguous='NaT')
+    ind = df_c.index.tz_localize(pytz.country_timezones[country][0], nonexistent = 'NaT', ambiguous='NaT')
     
     ind_utc = ind.tz_convert('utc')
     temp_utc = df_c.set_index(ind_utc)

@@ -110,8 +110,6 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
                     else:
                         continue
                     if random.uniform(0,1) > App.occasional_use: #evaluates if occasional use happens or not
-                        if App.fw_type == 'free_time': #add the free time skipped Appliance to the missing distance
-                            dist_recovery = dist_recovery + App.dist_tot
                         continue
                     else:
                         pass

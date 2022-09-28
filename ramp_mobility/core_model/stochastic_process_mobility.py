@@ -46,7 +46,6 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
     '''
     for Us in User_list: #reverting the Appliance list to have firstly free time and then main functioning windows
         Us.App_list.reverse()
-    trip_report = dict();t=0
 
     for prof_i in range(num_profiles_sim): #the whole code is repeated for each profile that needs to be generated
         Tot_Classes = np.zeros(1440) #initialise an empty daily profile that will be filled with the sum of the hourly profiles of each User instance

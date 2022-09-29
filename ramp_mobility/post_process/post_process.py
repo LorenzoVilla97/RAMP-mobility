@@ -109,12 +109,9 @@ def Usage_series_plot(stoch_profiles_series):
     #plt.savefig('profiles.eps', format='eps', dpi=1000)
     plt.show()
 
-def Profile_df_plot(Profile_df, year, country, start = '01-01 00:00:00', end = '12-31 23:59:00'):
-    
-    start_plot = str(year) + ' ' + start
-    end_plot = str(year) + ' ' + end
+def Profile_df_plot(Profile_df, year, country, start, end):
 
-    Profiles_df_plot = Profile_df[start_plot : end_plot]/1000   #Convert to kW
+    Profiles_df_plot = Profile_df[start : end]/1000   #Convert to kW
     
     figsize = (10,5)
     ax = Profiles_df_plot.plot(kind='line', color='blue', rot=0, fontsize=15, legend=False, figsize = figsize)
@@ -123,12 +120,9 @@ def Profile_df_plot(Profile_df, year, country, start = '01-01 00:00:00', end = '
     
     return ax
 
-def Charging_Profile_df_plot(Profile_df, year, country, color = 'blue', start = '01-01 00:00:00', end = '12-31 23:59:00'):
-    
-    start_plot = str(year) + ' ' + start
-    end_plot = str(year) + ' ' + end
+def Charging_Profile_df_plot(Profile_df, year, country, start, end, color ='blue'):
 
-    Profiles_df_plot = Profile_df[start_plot : end_plot]   
+    Profiles_df_plot = Profile_df[start : end]   
     
     figsize = (10,5)
     ax = Profiles_df_plot.plot(kind='line', color=color, rot=0, fontsize=15, legend=False, figsize = figsize)
@@ -137,13 +131,10 @@ def Charging_Profile_df_plot(Profile_df, year, country, color = 'blue', start = 
     
     return ax
 
-def Comparison_plot(Profile_df, Charging_Profile_df, year, country, start = '01-01 00:00:00', end = '12-31 23:59:00'):
+def Comparison_plot(Profile_df, Charging_Profile_df, year, country, start, end):
     
-    start_plot = str(year) + ' ' + start
-    end_plot = str(year) + ' ' + end
-
-    Profiles_df_plot = Profile_df[start_plot : end_plot]/1000
-    Charging_Profiles_df_plot = Charging_Profile_df[start_plot : end_plot]   
+    Profiles_df_plot = Profile_df[start : end]/1000
+    Charging_Profiles_df_plot = Charging_Profile_df[start : end]   
 
     figsize = (10,5)
     
@@ -155,15 +146,12 @@ def Comparison_plot(Profile_df, Charging_Profile_df, year, country, start = '01-
 
     return ax
 
-def Usage_df_plot(Usage_df, year, country, User_list, start = '01-01 00:00:00', end = '12-31 23:59:00'):
+def Usage_df_plot(Usage_df, year, country, User_list, start, end):
     
     tot_users = tot_users_calc(User_list)
-    
-    start_plot = str(year) + ' ' + start
-    end_plot = str(year) + ' ' + end
 
     # Plot of the Usage in percentage of the total population
-    Usage_df_plot = Usage_df[start_plot : end_plot]  #Divide by 10 because a value of 10 is assigned for each user to avoid the filter 
+    Usage_df_plot = Usage_df[start : end]  #Divide by 10 because a value of 10 is assigned for each user to avoid the filter 
 
     figsize = (10,5)
     ax = ((Usage_df_plot/tot_users)*100).plot(kind='line', color= 'orange', rot=0, fontsize=15, legend=False, figsize = figsize)
@@ -173,9 +161,9 @@ def Usage_df_plot(Usage_df, year, country, User_list, start = '01-01 00:00:00', 
 
     return ax
 
-def Profile_dataframe(Profiles_series, year):
+def Profile_dataframe(Profiles_series, start_day):
     
-    minutes = pd.date_range(start=str(year) + '-01-01', periods = len(Profiles_series), freq='T')
+    minutes = pd.date_range(start=start_day, periods = len(Profiles_series), freq='T')
     
     if Profiles_series.ndim == 1:
         Profiles_df = pd.DataFrame(Profiles_series, columns = ['Mobility Profile'])
@@ -186,9 +174,9 @@ def Profile_dataframe(Profiles_series, year):
    
     return Profiles_df
 
-def Ch_Profile_df(Profiles_series, year):
+def Ch_Profile_df(Profiles_series, start_day):
     
-    minutes = pd.date_range(start=str(year) + '-01-01', periods = len(Profiles_series), freq='T')
+    minutes = pd.date_range(start=start_day, periods = len(Profiles_series), freq='T')
     
     if Profiles_series.ndim == 1:
         Profiles_df = pd.DataFrame(Profiles_series, columns = ['Charging Profile'])
@@ -199,9 +187,9 @@ def Ch_Profile_df(Profiles_series, year):
    
     return Profiles_df
 
-def AF_dataframe(Profiles_series, year):
+def AF_dataframe(Profiles_series, start_day):
     
-    minutes = pd.date_range(start=str(year) + '-01-01', periods = len(Profiles_series), freq='T')
+    minutes = pd.date_range(start=start_day, periods = len(Profiles_series), freq='T')
     
     if Profiles_series.ndim == 1:
         Profiles_df = pd.DataFrame(Profiles_series, columns = ['Availability Factor'])
@@ -212,9 +200,9 @@ def AF_dataframe(Profiles_series, year):
    
     return Profiles_df
 
-def Profile_user_dataframe(Profiles_user, year):
+def Profile_user_dataframe(Profiles_user, start_day):
     
-    minutes = pd.date_range(start=str(year) + '-01-01', periods = len(Profiles_user[list(Profiles_user.keys())[0]]), freq='T')
+    minutes = pd.date_range(start=start_day, periods = len(Profiles_user[list(Profiles_user.keys())[0]]), freq='T')
     
     Profiles_user_df = {}
     
@@ -224,9 +212,9 @@ def Profile_user_dataframe(Profiles_user, year):
        
     return Profiles_user_df
 
-def Usage_dataframe(Profiles_series, year):
+def Usage_dataframe(Profiles_series, start_day):
     
-    minutes = pd.date_range(start=str(year) + '-01-01', periods = len(Profiles_series), freq='min')
+    minutes = pd.date_range(start=start_day, periods = len(Profiles_series), freq='min')
     
     Profiles_df = pd.DataFrame(Profiles_series, columns = ['Usage'])
     Profiles_df.set_index(minutes, inplace = True)
@@ -280,14 +268,14 @@ def Profile_temp(Profiles_df, temp_profile,  year = 2016):
     
     return Profiles_temp
 
-def Profile_temp_users(Profiles_user, temp_profile,  year = 2016, dummy_days = 1):
+def Profile_temp_users(Profiles_user, temp_profile,  year, start_day, dummy_days = 1):
 
-    start_day = dt.datetime(year, 1, 1) - dt.timedelta(days=dummy_days)
+    start_day = start_day - dt.timedelta(days=dummy_days)
     n_periods = len(Profiles_user['Working - Large car'])
     
     minutes_sim = pd.date_range(start=start_day, periods = n_periods, freq='T')
         
-    minutes = pd.date_range(start=str(year-1) + '-01-01', end=str(year+1) + '-12-31 23:59:00', freq='T')
+    minutes = pd.date_range(start=str(year-1) + '-01-01', end=str(year+1) + '-12-31 23:59:00', freq='T', tz='utc')
 
     temp_profile.set_index(minutes, inplace = True)
             
@@ -305,7 +293,7 @@ def Profile_temp_users(Profiles_user, temp_profile,  year = 2016, dummy_days = 1
             
     return Profiles_user_temp
 
-def Time_correction(df, country, year):
+def Time_correction(df, country, year, start_day):
     
     df_c = copy.deepcopy(df)   
     
@@ -319,14 +307,13 @@ def Time_correction(df, country, year):
     ind_utc = ind.tz_convert('utc')
     temp_utc = df_c.set_index(ind_utc)
     
-    ind_year = pd.date_range(start=str(year) + '-01-01', end=str(max(temp_utc.index).date()) + ' 23:59:00', freq = ind.to_series().diff().min(), tz = 'utc')
+    ind_year = pd.date_range(start=str(start_day), end=str(max(temp_utc.index).date()) + ' 23:59:00+00:00', freq = ind.to_series().diff().min(), tz = 'utc')
     temp_year = pd.DataFrame([np.nan] * len(ind_year), index = ind_year)
     
     df_utc_final = temp_utc.join(temp_year, how='outer')
     df_utc_final = df_utc_final.dropna(axis=1, how='all')
     df_utc_final = df_utc_final.loc[df_utc_final.index.notnull()]
     df_utc_final = df_utc_final.ffill()
-    df_utc_final = df_utc_final[df_utc_final.index >= str(year) + '-01-01']
     
     df_utc_final = pd.DataFrame(df_utc_final)
     

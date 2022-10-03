@@ -14,26 +14,26 @@ User_list = []
 
 '''Common values used in the input data definition'''
 
-#Define Country
+# Define Country
 country = 'AT'
 
-#Total number of users to be simulated
+# Total number of users to be simulated
 tot_users = 2500
 
-#Variabilities 
+# Variabilities 
 r_w = {}
 
 P_var = 0.1 #random in power
 r_d   = 0.3 #random in distance
 r_v   = 0.3 #random in velocity
 
-#Variabilites in functioning windows 
+# Variabilites in functioning windows 
 r_w['working'] = 0.25
 r_w['student'] = 0.25
 r_w['inactive'] = 0.2
 r_w['free time'] = 0.2
 
-#Occasional use 
+# Occasional use 
 occasional_use = {}
 
 occasional_use['weekday'] = 1
@@ -41,14 +41,14 @@ occasional_use['saturday'] = 0.6
 occasional_use['sunday'] = 0.5
 occasional_use['free time'] = {'weekday': 0.15, 'weekend': 0.3} #1/7, meaning taking car for free time once a week
 
-#Calibration parameters for the Velocity - Power Curve [kW]
+# Calibration parameters for the Velocity - Power Curve [kW]
 Par_P_EV = {}
 
 Par_P_EV['small']  = [0.26, -13, 546]
 Par_P_EV['medium'] = [0.3, -14, 600]
 Par_P_EV['large']  = [0.35, -15.2, 620]
 
-#Battery capacity [kWh]
+# Battery capacity [kWh]
 Battery_cap = {}
 
 Battery_cap['small']  = 37
@@ -74,11 +74,11 @@ if country in set(country_dict.values()):
 else:
     country_equivalent = country_dict[country]
 
-#Composition of the population by percentage share
+# Composition of the population by percentage share
 pop_file =  inputfolder + "pop_share.csv" 
 pop_data = pd.read_csv(pop_file, header = 0, index_col = 0)
 
-#Share of the type of vehicles in the country
+# Share of the type of vehicles in the country
 vehicle_file =  inputfolder + "vehicle_share.csv" 
 vehicle_data = pd.read_csv(vehicle_file, header = 0, index_col = 0)
 
@@ -100,7 +100,7 @@ window_data = pd.read_csv(window_file, header = [0,1], index_col = [0,1,2])
 window_data = window_data*60
 window_data = window_data.astype(int)
 
-#Trips distribution by time 
+# Trips distribution by time 
 trips = {}
 for day in ['weekday', 'saturday', 'sunday']:    
     file =  inputfolder + f"trips_by_time_{day}.csv" 
@@ -109,13 +109,13 @@ for day in ['weekday', 'saturday', 'sunday']:
 
 #%%
 
-#Composition of the population by percentage share
+# Composition of the population by percentage share
 pop_sh = {}
 
 for us in ['working', 'student', 'inactive']:
     pop_sh[us] = pop_data.loc[country, us]
 
-#Share of the type of vehicles in the country
+# Share of the type of vehicles in the country
 vehicle_sh = {}
 
 for size in ['small', 'medium', 'large']:
@@ -169,17 +169,17 @@ window['inactive']  = {'main':      [[window_data[country_window]['Start']['Inac
                        'free time': [[window_data[country_window]['Start']['Inactive']['Free time'][1], window_data[country_window]['End']['Inactive']['Free time'][1]],   
                                      [window_data[country_window]['Start']['Inactive']['Free time'][2], window_data[country_window]['End']['Inactive']['Free time'][2]]]}
 
-#Re-format functioning windows to calculare the Percentage of travels in functioning windows 
+# Re-format functioning windows to calculare the Percentage of travels in functioning windows 
 wind_temp = copy.deepcopy(window)
 for key in wind_temp.keys():
     for act in ['main', 'free time']:
         wind_temp[key][act] = [item for sublist in window[key][act] for item in sublist]
         wind_temp[key][act] = [(x / 60) for x in wind_temp[key][act]]
 
-#Percentage of travels in functioning windows 
+# Percentage of travels in functioning windows 
 
-#main and free time is defined according to the functioning windows
-#If the windows are modified, also the perentages should be modified accordingly
+# main and free time is defined according to the functioning windows
+# If the windows are modified, also the perentages should be modified accordingly
 perc_usage = {}
 
 perc_usage['weekday']  = {'working' :{'main': trips['weekday'].iloc[np.r_[wind_temp['working']['main'][0]:wind_temp['working']['main'][1], wind_temp['working']['main'][2]:wind_temp['working']['main'][3]]].sum()},
@@ -192,8 +192,8 @@ perc_usage['sunday']   = {'working' :{'main': trips['saturday'].iloc[np.r_[wind_
                           'student' :{'main': trips['saturday'].iloc[np.r_[wind_temp['student']['main'][0]:wind_temp['student']['main'][1], wind_temp['student']['main'][2]:wind_temp['student']['main'][3]]].sum()}, 
                           'inactive':{'main': trips['saturday'].iloc[np.r_[wind_temp['inactive']['main'][0]:wind_temp['inactive']['main'][1]]].sum()}}
 
-#Calulate the Percentage of travels in functioning windows for free time
-#as complementary to the main time 
+# Calulate the Percentage of travels in functioning windows for free time
+# as complementary to the main time 
 for key in perc_usage.keys():
     for us_type in ['working', 'student', 'inactive']:
         perc_usage[key][us_type]['free time'] = 1 - perc_usage[key][us_type]['main']
@@ -203,7 +203,7 @@ for key in perc_usage.keys():
 Users
 '''
 
-#Create new user classes
+# Create new user classes
 
 ### Working ###
 

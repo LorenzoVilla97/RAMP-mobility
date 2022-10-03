@@ -45,11 +45,16 @@ def Stochastic_Process_Mobility(inputfile, country, year, start_day, full_year, 
     The core stochastic process starts here. For each profile requested by the software user, 
     each Appliance instance within each User instance is separately and stochastically generated
     '''
-    for prof_i in tqdm(range(num_profiles_sim),desc='Profiles: '): #the whole code is repeated for each profile that needs to be generated
+
+    for Us in User_list: #reverting the Appliance list to have firstly free time and then main functioning windows
+        Us.App_list.reverse()
+
+    for prof_i in range(num_profiles_sim): #the whole code is repeated for each profile that needs to be generated
         Tot_Classes = np.zeros(1440) #initialise an empty daily profile that will be filled with the sum of the hourly profiles of each User instance
         Tot_Usage = np.zeros(1440) #initialise an empty daily usage profile that will be filled with the sum of the hourly usage of each User instance
         Profile_dict = {}
         Usage_dict = {}
+        dist_recovery = 0
         for Us in User_list: #iterates for each User instance (i.e. for each user class)
             Us.load = np.zeros(1440) #initialise empty load for User instance
             Us.usage = np.zeros(1440) #initialise empty usage profile for User instance
@@ -71,7 +76,13 @@ def Stochastic_Process_Mobility(inputfile, country, year, start_day, full_year, 
                     tot_time = 0
                     App.daily_use = np.zeros(1440)
                     App.usage = np.zeros(1440)
+                    if App.wd_we == Year_behaviour[prof_i] or App.wd_we == 3 : #checks if the app is allowed in the given yearly behaviour pattern
+                        pass
+                    else:
+                        continue
                     if random.uniform(0,1) > App.occasional_use: #evaluates if occasional use happens or not
+                        if App.fw_type == 'free_time': #add the free time skipped Appliance to the missing distance
+                            dist_recovery = dist_recovery + App.dist_tot
                         continue
                     else:
                         pass
@@ -113,6 +124,8 @@ def Stochastic_Process_Mobility(inputfile, country, year, start_day, full_year, 
                     random_var_d = random.uniform((1-App.r_d),(1+App.r_d))
 
                     rand_dist = round(random.uniform(App.dist_tot,int(App.dist_tot*random_var_d))) 
+                    rand_dist = rand_dist + dist_recovery #add the distance recovered from previous functioning windows
+                    dist_recovery = 0 #restore the initial value
                     
                     App.vel = App.func_dist/App.func_cycle * 60 
                     

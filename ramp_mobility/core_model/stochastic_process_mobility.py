@@ -7,15 +7,16 @@ import random
 import math
 import pandas as pd
 import datetime
+from tqdm import tqdm
 from ramp_mobility.core_model.initialise import Initialise_model, Initialise_inputs 
 
 #%% Core model stochastic script
 
-def Stochastic_Process_Mobility(inputfile, country, year, full_year):
+def Stochastic_Process_Mobility(inputfile, country, year, start_day, full_year, dummy_days):
     
     (peak_enlarg, mu_peak, s_peak, Year_behaviour, User_list, 
      Profile, Usage, Profile_user, Usage_user, num_profiles_user, 
-     num_profiles_sim, dummy_days) = Initialise_inputs(inputfile, country, year, full_year)
+     num_profiles_sim) = Initialise_inputs(inputfile, country, year, start_day, full_year, dummy_days)
     
     '''
     Calculation of the peak time range, which is used to discriminate between off-peak and on-peak coincident switch-on probability
@@ -44,6 +45,7 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
     The core stochastic process starts here. For each profile requested by the software user, 
     each Appliance instance within each User instance is separately and stochastically generated
     '''
+
     for Us in User_list: #reverting the Appliance list to have firstly free time and then main functioning windows
         Us.App_list.reverse()
 
@@ -338,6 +340,6 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
             Usage.append(Tot_Usage)#appends the total usage to the list that will contain all the generated profiles
 #            Usage_user.append(Usage_dict)
 
-            print(f'Profile {prof_i - dummy_days +1}/{num_profiles_user} completed') #screen update about progress of computation
+            print(f'\nProfile {prof_i - dummy_days +1}/{num_profiles_user} completed') #screen update about progress of computation
     
-    return(Profile, Usage, User_list, Profile_user, dummy_days)
+    return(Profile, Usage, User_list, Profile_user)

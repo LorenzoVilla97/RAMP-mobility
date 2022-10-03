@@ -72,6 +72,41 @@ def Stochastic_Process_Mobility(inputfile, country, year, start_day, full_year, 
                 else:
                     rand_daily_pref = random.randint(1,Us.user_preference)
                 for App in Us.App_list: #iterates for all the App types in the given User class
+                    '''
+                    Recalculate windows start and ending times randomly, based on the inputs through complementary approach
+                    '''
+                    if App.fw_type == 'main': #for Main functioning windows
+                        rand_window_1_temp = np.array([rand_window_1[1],rand_window_2[0]])
+                        rand_window_1 = rand_window_1_temp
+                        if App.num_windows == 2: #for appliances with two mains
+                            rand_window_2_temp = np.array([rand_window_2[1],rand_window_3[0]])
+                            rand_window_2 = rand_window_2_temp
+                    else: #for Free Time functioning windows
+                        rand_window_1 = np.array([int(App.window_1[0]),int(random.uniform((App.window_1[1]-App.random_var_1),(App.window_1[1]+App.random_var_1)))])
+                        if rand_window_1[0] < 0:    #redundant
+                            rand_window_1[0] = 0    #redundant
+                        if rand_window_1[1] >= 1440:
+                            rand_window_1[1] = 1440
+
+                        if App.num_windows == 2:
+                            rand_window_2 = np.array([int(random.uniform((App.window_2[0]-App.random_var_2),(App.window_2[0]+App.random_var_2))),int(App.window_2[1])])
+                            if rand_window_2[0] < 0:
+                                rand_window_2[0] = 0
+                            if rand_window_2[1] >= 1440:    #redundant
+                                rand_window_2[1] = 1440     #redundant
+                        else:   #if there are 3 functioning windows
+                            rand_window_2 = np.array([int(random.uniform((App.window_2[0]-App.random_var_2),(App.window_2[0]+App.random_var_2))),int(random.uniform((App.window_2[1]-App.random_var_2),(App.window_2[1]+App.random_var_2)))])
+                            if rand_window_2[0] < 0:
+                                rand_window_2[0] = 0
+                            if rand_window_2[1] >= 1440:
+                                rand_window_2[1] = 1440
+
+                            rand_window_3 = np.array([int(random.uniform((App.window_3[0]-App.random_var_3),(App.window_3[0]+App.random_var_3))),int(App.window_3[1])])
+                            if rand_window_3[0] < 0:
+                                rand_window_3[0] = 0
+                            if rand_window_3[1] >= 1440:    #redundant
+                                rand_window_3[1] = 1440     #redundant
+
                     #initialises variables for the cycle
                     tot_time = 0
                     App.daily_use = np.zeros(1440)
@@ -94,29 +129,6 @@ def Stochastic_Process_Mobility(inputfile, country, year, start_day, full_year, 
                             pass
                         else:
                             continue
-                    if App.wd_we == Year_behaviour[prof_i] or App.wd_we == 3 : #checks if the app is allowed in the given yearly behaviour pattern
-                        pass
-                    else:
-                        continue
-
-                    #recalculate windows start and ending times randomly, based on the inputs
-                    rand_window_1 = np.array([int(random.uniform((App.window_1[0]-App.random_var_1),(App.window_1[0]+App.random_var_1))),int(random.uniform((App.window_1[1]-App.random_var_1),(App.window_1[1]+App.random_var_1)))])
-                    if rand_window_1[0] < 0:
-                        rand_window_1[0] = 0
-                    if rand_window_1[1] > 1440:
-                        rand_window_1[1] = 1440
-    
-                    rand_window_2 = np.array([int(random.uniform((App.window_2[0]-App.random_var_2),(App.window_2[0]+App.random_var_2))),int(random.uniform((App.window_2[1]-App.random_var_2),(App.window_2[1]+App.random_var_2)))])
-                    if rand_window_2[0] < 0:
-                        rand_window_2[0] = 0
-                    if rand_window_2[1] > 1440:
-                        rand_window_2[1] = 1440
-                            
-                    rand_window_3 = np.array([int(random.uniform((App.window_3[0]-App.random_var_3),(App.window_3[0]+App.random_var_3))),int(random.uniform((App.window_3[1]-App.random_var_3),(App.window_3[1]+App.random_var_3)))])
-                    if rand_window_3[0] < 0:
-                        rand_window_3[0] = 0
-                    if rand_window_3[1] > 1440:
-                        rand_window_3[1] = 1440
                         
                     #Define all the variables here, with their variability
                     

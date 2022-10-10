@@ -52,6 +52,7 @@ full_year = False       # Choose if simulating the whole year (True) or not (Fal
 
 countries = ['AT', 'BE', 'BG', 'CH', 'CZ', 'DE', 'DK', 'EE', 'EL', 'ES', 'FI', 'FR', 'HR', 'HU',
     'IE', 'IT','LT', 'LU','LV', 'NL', 'NO', 'PL', 'PT', 'RO', 'SE', 'SI', 'SK', 'UK']
+mobility_report = True  # Choose if generating mobility statistics as output (True)
 
 for c in countries:
     # Define folder where results are saved, it will be:
@@ -84,13 +85,14 @@ for c in countries:
     #%% Call the functions for the simulation
     
     # Simulate the mobility profile 
-    (Profiles_list, Usage_list, User_list, Profiles_user_list, dummy_days
-     ) = Stochastic_Process_Mobility(inputfile, country, year, full_year)
+    (Profiles_list, Usage_list, Driven_km_list, User_list, Profiles_user_list, dummy_days, trip_report
+     ) = Stochastic_Process_Mobility(inputfile, country, year, full_year, mobility_report)
     
     # Post-processes the results and generates plots
     Profiles_avg, Profiles_list_kW, Profiles_series = pp.Profile_formatting(
         Profiles_list)
-    Usage_avg, Usage_series = pp.Usage_formatting(Usage_list)
+    Usage_avg, Usage_series = pp.Timeseries_formatting(Usage_list)
+    Driven_km_avg, Driven_km_series = pp.Timeseries_formatting(Driven_km_list)
     Profiles_user = pp.Profiles_user_formatting(Profiles_user_list)
     
     # If more than one daily profile is generated, also cloud plots are shown
@@ -99,16 +101,19 @@ for c in countries:
     
     # Create a dataframe with the profile
     Profiles_df = pp.Profile_dataframe(Profiles_series, year) 
-    Usage_df = pp.Usage_dataframe(Usage_series, year)
-    
+    Usage_df = pp.Timeseries_dataframe(Usage_series, year, 'Usage')
+    Driven_km_df = pp.Timeseries_dataframe(Driven_km_series, year, 'Driven km')
+
     # Time zone correction for profiles and usage
     Profiles_utc = pp.Time_correction(Profiles_df, country, year) 
     Usage_utc = pp.Time_correction(Usage_df, country, year)    
-    
+    Driven_km_utc = pp.Time_correction(Driven_km_df, country, year) 
+
     # By default, profiles and usage are plotted as a DataFrame
     pp.Profile_df_plot(Profiles_df, start = '01-01 00:00:00', end = '12-31 23:59:00', year = year, country = country)
     pp.Usage_df_plot(Usage_utc, start = '01-01 00:00:00', end = '12-31 23:59:00', year = year, country = country, User_list = User_list)
-    
+    pp.Driven_km_df_plot(Driven_km_utc, start = '01-01 00:00:00', end = '12-31 23:59:00', year = year, country = country)
+
     # Add temperature correction to the Power Profiles 
     # To be done after the UTC correction because the source data for Temperatures have time in UTC
     temp_profile = pp.temp_import(country, year, inputfile_temp) #Import temperature profiles, change the default path to the custom one
@@ -122,9 +127,19 @@ for c in countries:
         pp.export_csv('Mobility Profiles', Profiles_temp, inputfile, simulation_name)
         pp.export_csv('Mobility Profiles Hourly', Profiles_temp_h, inputfile, simulation_name)
         pp.export_csv('Usage', Usage_utc, inputfile, simulation_name)
-    #   pp.export_pickle('Profiles_User', Profiles_user_temp, inputfile, simulation_name)
-        
+        pp.export_csv('Driven km', Driven_km_utc, inputfile, simulation_name)
+        if mobility_report: #Trip report analysis section
+            mobility_stats = pp.Trip_report_processing(trip_report, dummy_days)
+            pp.export_csv('Mobility Report', mobility_stats, inputfile, simulation_name)
+    pp.export_pickle('Profiles_User', Profiles_user, inputfile, simulation_name)
+    pp.export_pickle('User_List', User_list, inputfile, simulation_name)
+    #%%    
     if charging:
+        # Reloading variables if charging section is decoupled from mobility section
+        if not("temp_profile" in locals()): temp_profile = pp.temp_import(country, year, inputfile_temp)
+        if not("Profile_user" in locals()): Profiles_user = pp.import_pickle('Profiles_User', inputfile, simulation_name)
+        if not("User_list" in locals()): User_list = pp.import_pickle('User_List', inputfile, simulation_name)
+        if not("dummy_days" in locals()): dummy_days = 5       
         
         Profiles_user_temp = pp.Profile_temp_users(Profiles_user, temp_profile,
                                                    year, dummy_days)

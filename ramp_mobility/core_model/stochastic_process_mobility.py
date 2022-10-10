@@ -11,10 +11,10 @@ from ramp_mobility.core_model.initialise import Initialise_model, Initialise_inp
 
 #%% Core model stochastic script
 
-def Stochastic_Process_Mobility(inputfile, country, year, full_year):
+def Stochastic_Process_Mobility(inputfile, country, year, full_year, mobility_report):
     
     (peak_enlarg, mu_peak, s_peak, Year_behaviour, User_list, 
-     Profile, Usage, Profile_user, Usage_user, num_profiles_user, 
+     Profile, Usage, Driven_km, Profile_user, Usage_user, num_profiles_user, 
      num_profiles_sim, dummy_days) = Initialise_inputs(inputfile, country, year, full_year)
     
     '''
@@ -44,14 +44,18 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
     The core stochastic process starts here. For each profile requested by the software user, 
     each Appliance instance within each User instance is separately and stochastically generated
     '''
+    trip_report = dict(); t = 0 #Initialise the variables required for the trip report output
+
     for prof_i in range(num_profiles_sim): #the whole code is repeated for each profile that needs to be generated
         Tot_Classes = np.zeros(1440) #initialise an empty daily profile that will be filled with the sum of the hourly profiles of each User instance
         Tot_Usage = np.zeros(1440) #initialise an empty daily usage profile that will be filled with the sum of the hourly usage of each User instance
+        Tot_Driven_km = np.zeros(1440) #initialise an empty daily usage profile that will be filled with the sum of the hourly km driven of each User instance
         Profile_dict = {}
         Usage_dict = {}
         for Us in User_list: #iterates for each User instance (i.e. for each user class)
             Us.load = np.zeros(1440) #initialise empty load for User instance
             Us.usage = np.zeros(1440) #initialise empty usage profile for User instance
+            Us.driven_km = np.zeros(1440) #initialise empty km profile for User instance
             # Profile_dict[Us.user_name] = np.zeros((1440 * (prof_i + 1),Us.num_users)) #initialise empty user-detailed usage profile for User instance
             # Profile_dict[Us.user_name] = np.zeros((1440,Us.num_users)) #initialise empty user-detailed usage profile for User instance
             # daily_use_tot = np.zeros((1440,Us.num_users))
@@ -266,6 +270,21 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
                                         np.put(App.daily_use_masked,indexes_adj,(App.power*(random.uniform((1-App.P_var),(1+App.P_var)))*coincidence),mode='clip')
                                     App.daily_use_masked = np.zeros_like(ma.masked_greater_equal(App.daily_use_masked,0.001)) #updates the mask excluding the current switch_on event to identify the free_spots for the next iteration
                                     tot_time = (tot_time - indexes.size) + indexes_adj.size #updates the total time correcting the previous value
+
+                                    #Variables to characterize the trip and required for the trip_report
+                                    if mobility_report:
+                                        day = prof_i
+                                        user_name = Us.user_name[0][0]
+                                        car_type = (Us.user_name).split()[2][:2]
+                                        user_number = i
+                                        we_wd = Year_behaviour[day]
+                                        trip_time = indexes_adj.size #minutes
+                                        trip_dist = round(rand_vel * trip_time/60,2) #kilometers
+
+                                        trip = (day, user_name, car_type, user_number, we_wd, trip_time, trip_dist)
+                                        trip_report[t] = trip
+                                        t = t+1
+
                                     break #exit cycle and go to next App
                                 else: #if the tot_time has not yet exceeded the App total functioning time, the cycle does the same without applying corrections to indexes size
                                     if (np.isin(peak_time_range,indexes, assume_unique = True).any()) and App.fixed == 'no':
@@ -310,22 +329,41 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
     
                             else:
                                 continue #if the random switch_on falls somewhere where the App has been already turned on, tries again from beginning of the while cycle
+
+                            #Variables to characterize the trip and required for the trip_report
+                            if mobility_report:
+                                day = prof_i
+                                user_name = Us.user_name[0][0]
+                                car_type = (Us.user_name).split()[2][:2]
+                                user_number = i
+                                we_wd = Year_behaviour[day]
+                                trip_time = indexes.size #minutes
+                                trip_dist = round(rand_vel * trip_time/60,2) #kilometers
+
+                                trip = (day, user_name, car_type, user_number, we_wd, trip_time, trip_dist)
+                                trip_report[t] = trip
+                                t = t+1
+
                     App.usage = App.daily_use   #Save the daily use to calculate the usage profile, i.e. without considering the power of the appliance. 
                     App.usage = np.where(App.usage > 0.1, 1, 0)
+                    App.driven_km = App.usage * rand_vel/60     #timeseries of km run, velocity in km/min assigned to each min step in which the App is moving 
                     Us.load = Us.load + App.daily_use #adds the App profile to the User load
                     Us.usage = Us.usage + App.usage #adds the App usage to the User usage profile
+                    Us.driven_km = Us.driven_km + App.driven_km  #adds the App profile to the User km timeseries
                     daily_profile_tot = daily_profile_tot + App.daily_use
 #                    daily_usage_tot = daily_usage_tot + App.usage
                 Profile_dict[Us.user_name].append(daily_profile_tot)
 #                Usage_dict[Us.user_name].append(daily_usage_tot)
             Tot_Classes = Tot_Classes + Us.load #adds the User load to the total load of all User classes
             Tot_Usage = Tot_Usage + Us.usage
+            Tot_Driven_km = Tot_Driven_km + Us.driven_km #adds the User driven km timeseries to the total driven km of all User classes
         Profile_user.append(Profile_dict)
         if (dummy_days - 1) < prof_i < (num_profiles_sim - dummy_days): # Do not append dummy days
             Profile.append(Tot_Classes) #appends the total load to the list that will contain all the generated profiles
             Usage.append(Tot_Usage)#appends the total usage to the list that will contain all the generated profiles
+            Driven_km.append(Tot_Driven_km) #appends the total driven km to the list that will contain all the generated profiles
 #            Usage_user.append(Usage_dict)
 
             print(f'Profile {prof_i - dummy_days +1}/{num_profiles_user} completed') #screen update about progress of computation
     
-    return(Profile, Usage, User_list, Profile_user, dummy_days)
+    return(Profile, Usage, Driven_km, User_list, Profile_user, dummy_days, trip_report)

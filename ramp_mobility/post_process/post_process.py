@@ -51,20 +51,20 @@ def Profiles_user_formatting(stoch_profiles):
         Profiles_user_format[us_type] = np.vstack(Profiles_user_format[us_type])
     return Profiles_user_format
 
-def Usage_formatting(stoch_profiles):
-    Usage_avg = np.zeros(1440)
+def Timeseries_formatting(stoch_profiles):
+    Timeseries_avg = np.zeros(1440)
     for pr in stoch_profiles:
-        Usage_avg = Usage_avg + pr
-    Usage_avg = Usage_avg/len(stoch_profiles)
+        Timeseries_avg = Timeseries_avg + pr
+    Timeseries_avg = Timeseries_avg/len(stoch_profiles)
       
-    # Usage_series = np.array([])
+    # Series_series = np.array([])
     # for iii in stoch_profiles:
-    #     Usage_series = np.append(Usage_series,iii)
+    #     Series_series = np.append(Series_series,iii)
     
-    Usage_series = np.array([])
-    Usage_series = np.hstack(stoch_profiles)
+    Timeseries_series = np.array([])
+    Timeseries_series = np.hstack(stoch_profiles)
 
-    return (Usage_avg, Usage_series)
+    return (Timeseries_avg, Timeseries_series)
 
 def Profile_cloud_plot(stoch_profiles,stoch_profiles_avg):
     #x = np.arange(0,1440,5)
@@ -155,7 +155,7 @@ def Comparison_plot(Profile_df, Charging_Profile_df, year, country, start = '01-
 
     return ax
 
-def Usage_df_plot(Usage_df, year, country, User_list, start = '01-01 00:00:00', end = '12-31 23:59:00'):
+def Usage_df_plot(Timeseries_df, year, country, User_list, start = '01-01 00:00:00', end = '12-31 23:59:00'):
     
     tot_users = tot_users_calc(User_list)
     
@@ -163,15 +163,29 @@ def Usage_df_plot(Usage_df, year, country, User_list, start = '01-01 00:00:00', 
     end_plot = str(year) + ' ' + end
 
     # Plot of the Usage in percentage of the total population
-    Usage_df_plot = Usage_df[start_plot : end_plot]  #Divide by 10 because a value of 10 is assigned for each user to avoid the filter 
+    Timeseries_df_plot = Timeseries_df[start_plot : end_plot]   
 
     figsize = (10,5)
-    ax = ((Usage_df_plot/tot_users)*100).plot(kind='line', color= 'orange', rot=0, fontsize=15, legend=False, figsize = figsize)
+    ax = ((Timeseries_df_plot/tot_users)*100).plot(kind='line', color= 'orange', rot=0, fontsize=15, legend=False, figsize = figsize)
     ax.set_ylabel('Usage [% of Total Users]', fontsize = 15)
     ax.set_title("Usage Profile - " + country, fontsize = 15)     
     ax.yaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
 
     return ax
+
+def Driven_km_df_plot(Profile_df, year, country, start = '01-01 00:00:00', end = '12-31 23:59:00'):
+    
+    start_plot = str(year) + ' ' + start
+    end_plot = str(year) + ' ' + end
+
+    Profiles_df_plot = Profile_df[start_plot : end_plot]
+    
+    figsize = (10,5)
+    ax = Profiles_df_plot.plot(kind='line', color='red', rot=0, fontsize=15, legend=False, figsize = figsize)
+    ax.set_ylabel('Driven distance [km]', fontsize = 15)
+    ax.set_title("Driven Distance Profile - " + country, fontsize = 15) 
+    
+    return ax    
 
 def Profile_dataframe(Profiles_series, year):
     
@@ -224,16 +238,16 @@ def Profile_user_dataframe(Profiles_user, year):
        
     return Profiles_user_df
 
-def Usage_dataframe(Profiles_series, year):
+def Timeseries_dataframe(Profiles_series, year, name):
     
     minutes = pd.date_range(start=str(year) + '-01-01', periods = len(Profiles_series), freq='min')
     
-    Profiles_df = pd.DataFrame(Profiles_series, columns = ['Usage'])
+    Profiles_df = pd.DataFrame(Profiles_series, columns = [name])
     Profiles_df.set_index(minutes, inplace = True)
    
     return Profiles_df
 
-def temp_import(country, year, inputfile_temp = r"..\database\temp_ninja_pop.csv"):
+def temp_import(country, year, inputfile_temp = r"../database/temp_ninja_pop.csv"):
       
     temp_profile = pd.read_csv(inputfile_temp, index_col = 0)
     temp_profile = pd.DataFrame(temp_profile[country]) 
@@ -304,6 +318,27 @@ def Profile_temp_users(Profiles_user, temp_profile,  year = 2016, dummy_days = 1
         Profiles_user_temp[user] = Profiles_user[user] * temp_coeff.values
             
     return Profiles_user_temp
+
+def Trip_report_processing(trip_report, dummy_days):
+    col_names = ['Day','User','Car_type','User N°','We_wd','Time','Distance']
+    Data = pd.DataFrame.from_dict(trip_report, orient='index', columns = col_names)
+
+    #Dropping dummy days
+    Data = Data.loc[Data['Day'] >= dummy_days]  #Cancel initial dummy days
+    Data = Data.loc[Data['Day']<=(Data['Day'].max()-dummy_days)] #Cancel final dummy days
+    Data['Day'] = Data['Day'] - dummy_days + 1 #Update day value
+    Data.index = list(range(len(Data.index))) #Update progressive trip number
+
+    #Computing Average Distance
+    Data_user = Data.groupby(['Day','User','Car_type','User N°','We_wd']).sum()
+    Data_user = Data_user.groupby(['Day','User','Car_type','We_wd'],level = 'User N°').mean()
+    Data_user = Data_user.groupby(['Day','User','We_wd'],level = 'Car_type').mean()
+
+    Data_user_day = Data_user.groupby(['User','We_wd'],level = 'Day').mean().round(2)
+
+    mobility_stats = Data_user_day
+    
+    return mobility_stats
 
 def Time_correction(df, country, year):
     
@@ -409,3 +444,18 @@ def export_pickle(filename, variable, inputfile, simulation_name):
     pickle.dump(variable, file, protocol=4)
     file.close()
     
+def import_pickle(filename, inputfile, simulation_name):
+
+    if simulation_name:
+        simulation = f'/{simulation_name}/'
+    else:
+        simulation = '/'
+
+    folder = f'../results/{inputfile}' + simulation
+    Path(folder).mkdir(parents=True, exist_ok=True)
+
+    file = open(f'{folder}{filename}.pkl','rb')
+    variable = pickle.load(file)
+    file.close()
+
+    return variable

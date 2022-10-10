@@ -27,17 +27,22 @@ class User():
 #Define the inner class for modelling user's appliances within the correspoding user class
     class Appliance():
     
-        def __init__(self,user, n = 1, Par_power = [0, 0, 0], Battery_cap = 0, P_var = 0, w = 1, t_func = 0, d_tot = 0, r_d = 0, r_v = 0, d_min = 1, fixed = 'no', fixed_cycle = 0, occasional_use = 1, flat = 'no',  pref_index = 0, wd_we_type = 3, P_series = False):
+        def __init__(self,user, n = 1, Par_power = [0, 0, 0], Battery_cap = 0, P_var = 0, w = 1, t_func = 0, d_tot = 0, r_d_lower = 0, r_d_upper = 0, r_t_lower = 0, r_t_upper = 0,
+         r_v_lower = 0, r_v_upper = 0, d_min = 1, fixed = 'no', fixed_cycle = 0, occasional_use = 1, flat = 'no',  pref_index = 0, wd_we_type = 3, P_series = False):
             self.user = user #user to which the appliance is bounded
             self.number = n #number of appliances of the specified kind
             self.num_windows = w #number of functioning windows to be considered
             self.dist_tot = d_tot #total distance the mobility appliance drives during the day [Km]
-            self.r_d = r_d #percentage of total distance that is subject to random variability
             # self.vel = v #velocity at which the mobility appliance drives [Km/h]
-            self.r_v = r_v #percentage of velocity that is subject to random variability
             # self.func_time = t #total time the appliance is on during the day
             self.func_dist = d_min #minimum distance the mobility appliance drives after switch-on event 
             self.func_cycle = t_func #minimum time the appliance is kept on after switch-on event 
+            self.r_d_lower = r_d_lower #lower percentage of total distance that is subject to random variability
+            self.r_d_upper = r_d_upper #upper percentage of total distance that is subject to random variability
+            self.r_t_lower = r_t_lower #lower random variability on the average trip times
+            self.r_t_upper = r_t_upper #upper random variability on the average trip times
+            self.r_v_lower = r_v_lower #lower random variability extent on first guess mean speed
+            self.r_v_upper = r_v_upper #upper random variability extent on first guess mean speed
             self.fixed = fixed #if 'yes', all the 'n' appliances of this kind are always switched-on together
             self.activate = fixed_cycle #if equal to 1,2 or 3, respectively 1,2 or 3 duty cycles can be modelled, for different periods of the day
             self.occasional_use = occasional_use #probability that the appliance is always (i.e. everyday) included in the mix of appliances that the user actually switches-on during the day
@@ -101,4 +106,3 @@ class User():
             self.cw22 = cw22
             self.cw31 = cw31 #same for cycle 3
             self.cw32 = cw32
-            

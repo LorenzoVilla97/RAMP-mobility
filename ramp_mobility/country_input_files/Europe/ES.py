@@ -3,7 +3,7 @@
 #%% Definition of the inputs
 from country_input_files.input_functions import common_inputs, data_loading, data_processing, creating_users
 '''
-Input data definition 
+Input data definition
 '''
 #Define Country and file location
 country = 'ES'
@@ -14,16 +14,21 @@ tot_users = 2500
 User_list = []
 
 # Load common inputs
-(P_var, r_d, r_v, r_w, occasional_use, Par_P_EV, Battery_cap, country_equivalent) = common_inputs(country)
+(P_var, r_d_lower, r_d_upper, r_t_lower, r_t_upper, r_v_lower, r_v_upper, r_w, occasional_use, Par_P_EV, Battery_cap, country_equivalent) = common_inputs(country)
 # Optional section to set country specific variabilities and EV fleet characteristics
 '''
-#Variabilities 
+#Variabilities
 P_var = 0.1 #random in power
-r_d   = 0.3 #random in distance
-r_v   = 0.3 #random in velocity
-#Variabilites in functioning windows 
+r_d_lower = 0.3 #lower random in distance
+r_d_upper = 0.3 #upper random in distance
+r_t_lower = 0.2 #lower random in trip time
+r_t_upper = 0.2 #upper random in trip time
+r_v_lower = 0.3 #lower random in speed
+r_v_upper = 0.3 #upper random in speed
+
+#Variabilites in functioning windows
 r_w = {}; r_w['working'] = 0.25; r_w['student'] = 0.25; r_w['inactive'] = 0.2; r_w['free time'] = 0.2
-#Occasional use 
+#Occasional use
 occasional_use = {}
 occasional_use['weekday'] = 1; occasional_use['saturday'] = 0.6; occasional_use['sunday'] = 0.5
 occasional_use['free time'] = {'weekday': 0.15, 'weekend': 0.3} #1/7, meaning taking car for free time once a week
@@ -37,4 +42,4 @@ Battery_cap = {}; Battery_cap['small']  = 37; Battery_cap['medium'] = 60; Batter
 # Process country-dependent data
 (pop_sh, vehicle_sh, d_tot, d_min, t_func, window, perc_usage) = data_processing(country, country_equivalent, pop_data, vehicle_data, d_tot_data, d_min_data, t_func_data, window_data, trips)
 # Create Users and Appliances
-User_List = creating_users(User_list, tot_users, pop_sh, vehicle_sh, Par_P_EV, Battery_cap, P_var, d_tot, perc_usage, r_d, t_func, r_v, d_min, occasional_use, window, r_w)
+User_List = creating_users(User_list, tot_users, pop_sh, vehicle_sh, Par_P_EV, Battery_cap, P_var, d_tot, perc_usage, r_d_lower, r_d_upper, r_t_lower, r_t_upper, r_v_lower, r_v_upper, t_func, d_min, occasional_use, window, r_w)

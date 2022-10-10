@@ -107,15 +107,13 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
                         rand_window_3[1] = 1440
                         
                     #Define all the variables here, with their variability
-                    
-                    random_var_v = random.uniform((1-App.r_v),(1+App.r_v))
-                    random_var_d = random.uniform((1-App.r_d),(1+App.r_d))
+                    random_var_v = random.uniform((1-App.r_v_lower),(1+App.r_v_upper))
+                    random_var_d = random.uniform((1-App.r_d_lower),(1+App.r_d_upper))                    
 
                     rand_dist = round(random.uniform(App.dist_tot,int(App.dist_tot*random_var_d))) 
                     
                     App.vel = App.func_dist/App.func_cycle * 60 
-                    
-                    rand_vel = np.maximum(20, round(random.uniform(App.vel,int(App.vel*random_var_v)))) #average velocity of the trip, minimum value is 20 km/h to get reasonable values from the power curve
+                    rand_vel = np.maximum(20, int(App.vel*random_var_v)) #average velocity of the trip, minimum value is 20 km/h to get reasonable values from the power curve
                     
                     rand_time = int(round(rand_dist/rand_vel * 60))  #Function to calculate the total time based on total distance and average velocity 
                                                            
@@ -168,6 +166,9 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
                     max_free_spot = rand_time #free spots are used to detect if there's still space for switch_ons. Before calculating actual free spots, the max free spot is set equal to the entire randomised func_time
                            
                     while tot_time <= rand_time: #this is the key cycle, which runs for each App until the switch_ons and their duration equals the randomised total time of use of the App
+                            random_var_t = random.uniform((1-App.r_t_lower),(1+App.r_t_upper))
+                            t_trip = App.func_cycle * random_var_t  #randomized duration for each generated trip in the functioning window
+                            
                             #check how many windows to consider
                             if App.num_windows == 1:
                                 switch_on = int(random.choice([random.uniform(rand_window_1[0],(rand_window_1[1]))]))
@@ -180,26 +181,26 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
                                 if switch_on in range(rand_window_1[0],rand_window_1[1]):
                                     if np.any(App.daily_use[switch_on:rand_window_1[1]]!=0.001): #control to check if there are any other switch on times after the current one    
                                         next_switch = [switch_on + k[0] for k in np.where(App.daily_use[switch_on:]!=0.001)] #identifies the position of next switch on time and sets it as a limit for the duration of the current switch on
-                                        if (next_switch[0] - switch_on) >= App.func_cycle and max_free_spot >= App.func_cycle:
+                                        if (next_switch[0] - switch_on) >= t_trip and max_free_spot >= t_trip:
                                             upper_limit = min((next_switch[0]-switch_on),min(rand_time,rand_window_1[1]-switch_on))
-                                        elif (next_switch[0] - switch_on) < App.func_cycle and max_free_spot >= App.func_cycle: #if next switch_on event does not allow for a minimum functioning cycle without overlapping, but there are other larger free spots, the cycle tries again from the beginning
+                                        elif (next_switch[0] - switch_on) < t_trip and max_free_spot >= t_trip: #if next switch_on event does not allow for a minimum functioning cycle without overlapping, but there are other larger free spots, the cycle tries again from the beginning
                                             continue
                                         else:
                                             upper_limit = next_switch[0]-switch_on #if there are no other options to reach the total time of use, empty spaces are filled without minimum cycle restrictions until reaching the limit                                              
                                     else:
                                         upper_limit = min(rand_time,rand_window_1[1]-switch_on) #if there are no other switch-on events after the current one, the upper duration limit is set this way
                                     
-                                    if upper_limit >= App.func_cycle: #if the upper limit is higher than minimum functioning time, an array of indexes is created to be later put in the profile
-                                        indexes = np.arange(switch_on,switch_on+(int(random.uniform(App.func_cycle,upper_limit)))) #a random duration is chosen between the upper limit and the minimum cycle
+                                    if upper_limit >= t_trip: #if the upper limit is higher than minimum functioning time, an array of indexes is created to be later put in the profile
+                                        indexes = np.arange(switch_on,switch_on+(int(random.uniform(t_trip,upper_limit)))) #a random duration is chosen between the upper limit and the minimum cycle
                                     else:
                                         indexes = np.arange(switch_on,switch_on+upper_limit) #this is the case in which empty spaces need to be filled without constraints to reach the total time goal
                                         
                                 elif switch_on in range(rand_window_2[0],rand_window_2[1]): #if random switch_on happens in windows2, same code as above is repeated for windows2
                                     if np.any(App.daily_use[switch_on:rand_window_2[1]]!=0.001):
                                         next_switch = [switch_on + k[0] for k in np.where(App.daily_use[switch_on:]!=0.001)]
-                                        if (next_switch[0] - switch_on) >= App.func_cycle and max_free_spot >= App.func_cycle:
+                                        if (next_switch[0] - switch_on) >= t_trip and max_free_spot >= t_trip:
                                             upper_limit = min((next_switch[0]-switch_on),min(rand_time,rand_window_2[1]-switch_on))
-                                        elif (next_switch[0] - switch_on) < App.func_cycle and max_free_spot >= App.func_cycle:
+                                        elif (next_switch[0] - switch_on) < t_trip and max_free_spot >= t_trip:
                                             continue
                                         else:
                                             upper_limit = next_switch[0]-switch_on
@@ -207,17 +208,17 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
                                     else:
                                         upper_limit = min(rand_time,rand_window_2[1]-switch_on)
                                     
-                                    if upper_limit >= App.func_cycle:
-                                        indexes = np.arange(switch_on,switch_on+(int(random.uniform(App.func_cycle,upper_limit))))
+                                    if upper_limit >= t_trip:
+                                        indexes = np.arange(switch_on,switch_on+(int(random.uniform(t_trip,upper_limit))))
                                     else:    
                                         indexes = np.arange(switch_on,switch_on+upper_limit)
                                         
                                 else: #if switch_on is not in window1 nor in window2, it shall be in window3. Same code is repreated
                                     if np.any(App.daily_use[switch_on:rand_window_3[1]]!=0.001):
                                         next_switch = [switch_on + k[0] for k in np.where(App.daily_use[switch_on:]!=0.001)]
-                                        if (next_switch[0] - switch_on) >= App.func_cycle and max_free_spot >= App.func_cycle:
+                                        if (next_switch[0] - switch_on) >= t_trip and max_free_spot >= t_trip:
                                             upper_limit = min((next_switch[0]-switch_on),min(rand_time,rand_window_3[1]-switch_on))
-                                        elif (next_switch[0] - switch_on) < App.func_cycle and max_free_spot >= App.func_cycle:
+                                        elif (next_switch[0] - switch_on) < t_trip and max_free_spot >= t_trip:
                                             continue
                                         else:
                                             upper_limit = next_switch[0]-switch_on
@@ -225,8 +226,8 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
                                     else:
                                         upper_limit = min(rand_time,rand_window_3[1]-switch_on)
                                     
-                                    if upper_limit >= App.func_cycle:
-                                        indexes = np.arange(switch_on,switch_on+(int(random.uniform(App.func_cycle,upper_limit))))
+                                    if upper_limit >= t_trip:
+                                        indexes = np.arange(switch_on,switch_on+(int(random.uniform(t_trip,upper_limit))))
                                     else:    
                                         indexes = np.arange(switch_on,switch_on+upper_limit)
                                         

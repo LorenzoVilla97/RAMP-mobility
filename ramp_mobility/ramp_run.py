@@ -126,7 +126,7 @@ for c in countries:
         
     if charging:
         
-        Profiles_user_temp = pp.Profile_temp_users(Profiles_user, temp_profile,
+        Profiles_user_temp = pp.Profile_temp_users(Profiles_user, temp_profile,country
                                                    year, dummy_days)
      
         # Charging process function: if no problem is detected, only the cumulative charging profile is calculated. Otherwise, also the user specific quantities are included. 

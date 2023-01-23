@@ -5,26 +5,23 @@
 import importlib
 import datetime
 import calendar
-import pytz
+
 import numpy as np 
 
-from ramp_mobility import country_input_files
+
 
 # Import holidays package 
 import holidays 
 
 #%% Initialise model
 
-def yearly_pattern(country, year):
+def yearly_pattern(country, year, start_day, dummy_days):
     '''
     Definition of a yearly pattern of weekends and weekdays, in case some appliances have specific wd/we behaviour
     ''' 
-    # Number of days to add at the beginning and the end of the simulation to avoid special cases at the beginning and at the end
-    dummy_days = 5
-
     #Yearly behaviour pattern
-    first_day = datetime.date(year, 1, 1).strftime("%A")
-    
+    first_day = start_day.strftime("%A")          
+                
     if calendar.isleap(year):
         year_len = 366
     else: 
@@ -68,7 +65,7 @@ def yearly_pattern(country, year):
     
     Year_behaviour = np.hstack((dummy_days_array, Year_behaviour, dummy_days_array))
     
-    return(Year_behaviour, dummy_days)
+    return Year_behaviour
 
 def user_defined_inputs(inputfile):
     '''
@@ -109,9 +106,9 @@ def Initialise_model(dummy_days, full_year, year):
 
     return (Profile, Usage, Profile_user, Usage_user, num_profiles_user, num_profiles_sim)
     
-def Initialise_inputs(inputfile, country, year, full_year):
+def Initialise_inputs(inputfile, country, year, start_day, full_year, dummy_days):
     
-    Year_behaviour, dummy_days = yearly_pattern(country, year)
+    Year_behaviour = yearly_pattern(country, year, start_day, dummy_days)
     User_list = user_defined_inputs(inputfile)
     (Profile, Usage, Profile_user, Usage_user, num_profiles_user,num_profiles_sim
      ) = Initialise_model(dummy_days, full_year, year)
@@ -129,6 +126,6 @@ def Initialise_inputs(inputfile, country, year, full_year):
     s_peak = 1 #standard deviation (as percentage of the median value) of the gaussian distribution [0,1] above mentioned
     
     return (peak_enlarg, mu_peak, s_peak, Year_behaviour, User_list, Profile, 
-            Usage, Profile_user, Usage_user, num_profiles_user, num_profiles_sim, dummy_days)
+            Usage, Profile_user, Usage_user, num_profiles_user, num_profiles_sim)
 
 

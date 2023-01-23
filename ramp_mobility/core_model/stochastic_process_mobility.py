@@ -7,15 +7,16 @@ import random
 import math
 import pandas as pd
 import datetime
+from tqdm import tqdm
 from ramp_mobility.core_model.initialise import Initialise_model, Initialise_inputs 
 
 #%% Core model stochastic script
 
-def Stochastic_Process_Mobility(inputfile, country, year, full_year):
+def Stochastic_Process_Mobility(inputfile, country, year, start_day, full_year, dummy_days):
     
     (peak_enlarg, mu_peak, s_peak, Year_behaviour, User_list, 
      Profile, Usage, Profile_user, Usage_user, num_profiles_user, 
-     num_profiles_sim, dummy_days) = Initialise_inputs(inputfile, country, year, full_year)
+     num_profiles_sim) = Initialise_inputs(inputfile, country, year, start_day, full_year, dummy_days)
     
     '''
     Calculation of the peak time range, which is used to discriminate between off-peak and on-peak coincident switch-on probability
@@ -44,11 +45,16 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
     The core stochastic process starts here. For each profile requested by the software user, 
     each Appliance instance within each User instance is separately and stochastically generated
     '''
+
+    for Us in User_list: #reverting the Appliance list to have firstly free time and then main functioning windows
+        Us.App_list.reverse()
+
     for prof_i in range(num_profiles_sim): #the whole code is repeated for each profile that needs to be generated
         Tot_Classes = np.zeros(1440) #initialise an empty daily profile that will be filled with the sum of the hourly profiles of each User instance
         Tot_Usage = np.zeros(1440) #initialise an empty daily usage profile that will be filled with the sum of the hourly usage of each User instance
         Profile_dict = {}
         Usage_dict = {}
+        dist_recovery = 0
         for Us in User_list: #iterates for each User instance (i.e. for each user class)
             Us.load = np.zeros(1440) #initialise empty load for User instance
             Us.usage = np.zeros(1440) #initialise empty usage profile for User instance
@@ -66,11 +72,52 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
                 else:
                     rand_daily_pref = random.randint(1,Us.user_preference)
                 for App in Us.App_list: #iterates for all the App types in the given User class
+                    '''
+                    Recalculate windows start and ending times randomly, based on the inputs through complementary approach
+                    '''
+                    if App.fw_type == 'main': #for Main functioning windows
+                        rand_window_1_temp = np.array([rand_window_1[1],rand_window_2[0]])
+                        rand_window_1 = rand_window_1_temp
+                        if App.num_windows == 2: #for appliances with two mains
+                            rand_window_2_temp = np.array([rand_window_2[1],rand_window_3[0]])
+                            rand_window_2 = rand_window_2_temp
+                    else: #for Free Time functioning windows
+                        rand_window_1 = np.array([int(App.window_1[0]),int(random.uniform((App.window_1[1]-App.random_var_1),(App.window_1[1]+App.random_var_1)))])
+                        if rand_window_1[0] < 0:    #redundant
+                            rand_window_1[0] = 0    #redundant
+                        if rand_window_1[1] >= 1440:
+                            rand_window_1[1] = 1440
+
+                        if App.num_windows == 2:
+                            rand_window_2 = np.array([int(random.uniform((App.window_2[0]-App.random_var_2),(App.window_2[0]+App.random_var_2))),int(App.window_2[1])])
+                            if rand_window_2[0] < 0:
+                                rand_window_2[0] = 0
+                            if rand_window_2[1] >= 1440:    #redundant
+                                rand_window_2[1] = 1440     #redundant
+                        else:   #if there are 3 functioning windows
+                            rand_window_2 = np.array([int(random.uniform((App.window_2[0]-App.random_var_2),(App.window_2[0]+App.random_var_2))),int(random.uniform((App.window_2[1]-App.random_var_2),(App.window_2[1]+App.random_var_2)))])
+                            if rand_window_2[0] < 0:
+                                rand_window_2[0] = 0
+                            if rand_window_2[1] >= 1440:
+                                rand_window_2[1] = 1440
+
+                            rand_window_3 = np.array([int(random.uniform((App.window_3[0]-App.random_var_3),(App.window_3[0]+App.random_var_3))),int(App.window_3[1])])
+                            if rand_window_3[0] < 0:
+                                rand_window_3[0] = 0
+                            if rand_window_3[1] >= 1440:    #redundant
+                                rand_window_3[1] = 1440     #redundant
+
                     #initialises variables for the cycle
                     tot_time = 0
                     App.daily_use = np.zeros(1440)
                     App.usage = np.zeros(1440)
+                    if App.wd_we == Year_behaviour[prof_i] or App.wd_we == 3 : #checks if the app is allowed in the given yearly behaviour pattern
+                        pass
+                    else:
+                        continue
                     if random.uniform(0,1) > App.occasional_use: #evaluates if occasional use happens or not
+                        if App.fw_type == 'free_time': #add the free time skipped Appliance to the missing distance
+                            dist_recovery = dist_recovery + App.dist_tot
                         continue
                     else:
                         pass
@@ -82,29 +129,6 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
                             pass
                         else:
                             continue
-                    if App.wd_we == Year_behaviour[prof_i] or App.wd_we == 3 : #checks if the app is allowed in the given yearly behaviour pattern
-                        pass
-                    else:
-                        continue
-
-                    #recalculate windows start and ending times randomly, based on the inputs
-                    rand_window_1 = np.array([int(random.uniform((App.window_1[0]-App.random_var_1),(App.window_1[0]+App.random_var_1))),int(random.uniform((App.window_1[1]-App.random_var_1),(App.window_1[1]+App.random_var_1)))])
-                    if rand_window_1[0] < 0:
-                        rand_window_1[0] = 0
-                    if rand_window_1[1] > 1440:
-                        rand_window_1[1] = 1440
-    
-                    rand_window_2 = np.array([int(random.uniform((App.window_2[0]-App.random_var_2),(App.window_2[0]+App.random_var_2))),int(random.uniform((App.window_2[1]-App.random_var_2),(App.window_2[1]+App.random_var_2)))])
-                    if rand_window_2[0] < 0:
-                        rand_window_2[0] = 0
-                    if rand_window_2[1] > 1440:
-                        rand_window_2[1] = 1440
-                            
-                    rand_window_3 = np.array([int(random.uniform((App.window_3[0]-App.random_var_3),(App.window_3[0]+App.random_var_3))),int(random.uniform((App.window_3[1]-App.random_var_3),(App.window_3[1]+App.random_var_3)))])
-                    if rand_window_3[0] < 0:
-                        rand_window_3[0] = 0
-                    if rand_window_3[1] > 1440:
-                        rand_window_3[1] = 1440
                         
                     #Define all the variables here, with their variability
                     
@@ -112,6 +136,8 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
                     random_var_d = random.uniform((1-App.r_d),(1+App.r_d))
 
                     rand_dist = round(random.uniform(App.dist_tot,int(App.dist_tot*random_var_d))) 
+                    rand_dist = rand_dist + dist_recovery #add the distance recovered from previous functioning windows
+                    dist_recovery = 0 #restore the initial value
                     
                     App.vel = App.func_dist/App.func_cycle * 60 
                     
@@ -326,6 +352,6 @@ def Stochastic_Process_Mobility(inputfile, country, year, full_year):
             Usage.append(Tot_Usage)#appends the total usage to the list that will contain all the generated profiles
 #            Usage_user.append(Usage_dict)
 
-            print(f'Profile {prof_i - dummy_days +1}/{num_profiles_user} completed') #screen update about progress of computation
+            print(f'\nProfile {prof_i - dummy_days +1}/{num_profiles_user} completed') #screen update about progress of computation
     
-    return(Profile, Usage, User_list, Profile_user, dummy_days)
+    return(Profile, Usage, User_list, Profile_user)
